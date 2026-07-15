@@ -907,8 +907,61 @@ const SPECIES_TO_GROUP = {
 // A handful of deliberately silly, tongue-in-cheek names get sprinkled across every
 // species' pool (yes, even the elves) so an occasional NPC is named "Goose" or "Kringle."
 // Rotated per group so the same two or three silly names don't show up everywhere at once.
-const SILLY_NAMES = ["Goose","Snatch","Kringle","Festerbeth","Chumley","Waffles","Bingo",
-  "Nubbins","Big Gus","Gouda","Sir Fluffington","Dave","Norm","Gary","Doug","Biscuit"];
+const SILLY_NAMES = [
+  "Goose","Snatch","Kringle","Festerbeth","Chumley","Waffles","Bingo",
+  "Nubbins","Big Gus","Gouda","Sir Fluffington","Dave","Norm","Gary","Doug",
+  "Biscuit","Pickles","Beans","Gravy","Noodle","Muffin","Pancake","Crumpet",
+  "Turnip","Radish","Parsnip","Cabbage","Onion","Carrot","Pumpkin","Pepper",
+  "Potato","Tater","Yam","Cheddar","Brie","Swiss","Mozzarella","Nacho",
+  "Pretzel","Bagel","Donut","Toast","Cracker","Popcorn","Cornbread","Meatball",
+  "Ham","Turkey","Sardine","Anchovy","Trout","Cod","Herring","Clam","Shrimp",
+
+  "Badger","Otter","Goat","Chicken","Turkey","Moose","Mole","Ferret","Possum",
+  "Raccoon","Beaver","Skunk","Pigeon","Crow","Seagull","Cricket","Mantis",
+  "Toad","Frog","Minnow","Tuna","Mackerel","Lobster","Crab","Squid","Barnacle",
+
+  "Kevin","Steve","Bob","Jim","Larry","Jerry","Greg","Craig","Todd","Chad",
+  "Dennis","Walter","Susan","Linda","Patricia","Barbara","Janet","Debra",
+  "Carol","Nancy","Sheila","Karen","Keith","Phil","Frank","Bruce","Ron",
+  "Harold","Milton","Herb","Eugene","Edgar","Mort","Wilbur","Clyde","Melvin",
+
+  "Bork","Glorp","Splungo","Snork","Plop","Blorp","Gribble","Skrunk","Dorkus",
+  "Flibbert","Crumple","Grunk","Wizzle","Snizzle","Doof","Boingo","Floof",
+  "Blimpo","Yarp","Zorp","Mugwort","Splug","Wumpus","Grizzle","Snoot",
+  "Fungus","Moldy","Crust","Lump","Stinky","Crinkle","Booger","Gunk","Goober",
+  "Noggin","Bonk","Thunk","Whiff","Plunk","Splat","Bloop","Splatters","Fizzle",
+
+  "Tiny","Shorty","Stretch","Lefty","Lucky","Unlucky","Sleepy","Dozy","Grumpy",
+  "Happy","Squints","One-Eye","Three-Toes","Knuckles","Whiskers","Stumbles",
+  "Trip","Scooter","Scoot","Patches","Buttons","Pebbles","Boots","Socks",
+  "Hat","Bucket","Barrel","Shovel","Hammer","Fork","Spoon","Ladle","Teacup",
+
+  "Captain Breakfast","Lord Picklepants","Professor Goose","Doctor Gravy",
+  "Baron Biscuit","Archduke Waffles","Sir Honksalot","High Nugget",
+  "Grandpa Beans","Auntie Turnip","The Moist","The Loud","The Damp",
+  "The Extremely Average","Champion of Soup","Keeper of Crumbs",
+  "Duke Donut","Queen Crumpet","Master Noodle","Saint Pickles",
+  "Admiral Anchovy","Marshal Meatball","The Unsupervised","The Third Dave",
+
+  "Bonk","Bump","Boop","Whomp","Thunker","Plink","Dingus","Dongle","Widget",
+  "Gizmo","Doohickey","Thingamabob","Whatsit","Whoops","Oops","Yikes",
+  "Skedaddle","Scamper","Hiccup","Sniffles","Giggles","Chuckles","Wobble",
+  "Tumbles","Flops","Bumbles","Fumbles","Mumbles","Mop","Broom","Dusty",
+
+  "Egg","Eggbert","Eggatha","Nugget","Pebble","Rock","Brick","Mud","Twig",
+  "Stick","Log","Leaf","Acorn","Pinecone","Moss","Mildew","Lint","Sock",
+  "Blanket","Chair","Table","Door","Window","Kettle","Buckethead","Soup",
+  "Cereal","Marble","Button","Cork","Coconut","Banana","Apple","Pear",
+
+  "Sir Reginald von Goose","Count Crumblebottom","Balthazar Picklesworth",
+  "Honkimus","Grungle","Mump","Flapjack","Gadzooks","Skibble","Rumblegut",
+  "Taterson","McBeans","O'Gravy","Von Biscuit","Cheeseman","Gravyboat",
+  "Moldsworth","Crumplehorn","Wobblechin","Fizzlebottom","Cranklepants",
+  "Noodleford","Picklebelly","Breadsworth","Gizzard","Blubberkins",
+  "Snaggletooth","Gobsmack","Honkers","Warty","Muck","Sludge","Puddles",
+  "Crumbs","Smudge","Grease","Belch","Burp","Honk","Toot","Sneeze",
+  "Snort","Wheezy","Cough","Murmur","Bloopington","Guffaw","Boondoggle"
+];
 (function seedSillyNames(){
   function seedInto(g, i){
     const a = SILLY_NAMES[i % SILLY_NAMES.length];
