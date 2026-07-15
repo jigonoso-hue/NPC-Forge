@@ -1,0 +1,1099 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>D&D NPC Generator</title>
+<style>
+  :root{
+    --parchment:#f4e8d0;
+    --parchment-dark:#e8d9b5;
+    --ink:#2b1d10;
+    --maroon:#6b1f24;
+    --maroon-dark:#4d1519;
+    --gold:#b8860b;
+    --line:#c9b184;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family: 'Georgia', 'Times New Roman', serif;
+    background: radial-gradient(circle at top, #3a2c22, #1c140d 70%);
+    color:var(--ink);
+    padding:24px 12px 60px;
+    min-height:100vh;
+  }
+  .sheet{
+    max-width:820px;
+    margin:0 auto;
+    background:var(--parchment);
+    border:3px solid var(--maroon-dark);
+    border-radius:8px;
+    box-shadow:0 0 0 6px var(--parchment-dark), 0 20px 50px rgba(0,0,0,0.6);
+    padding:28px 32px 34px;
+  }
+  h1{
+    text-align:center;
+    font-size:1.9em;
+    letter-spacing:1px;
+    color:var(--maroon-dark);
+    margin:0 0 4px;
+    text-shadow:1px 1px 0 rgba(255,255,255,0.3);
+  }
+  .subtitle{
+    text-align:center;
+    font-style:italic;
+    color:#5a4630;
+    margin:0 0 20px;
+    font-size:0.95em;
+  }
+  .controls{
+    display:flex;
+    justify-content:center;
+    gap:12px;
+    flex-wrap:wrap;
+    margin-bottom:22px;
+  }
+  button{
+    font-family:inherit;
+    cursor:pointer;
+    border-radius:5px;
+    border:1px solid var(--maroon-dark);
+    background:var(--maroon);
+    color:#f4e8d0;
+    padding:10px 18px;
+    font-size:0.95em;
+    transition:transform .08s ease, background .15s ease;
+  }
+  button:hover{ background:var(--maroon-dark); }
+  button:active{ transform:scale(0.96); }
+  button.secondary{
+    background:var(--parchment-dark);
+    color:var(--ink);
+    border:1px solid var(--line);
+  }
+  button.secondary:hover{ background:#dcc99a; }
+  .filters{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    gap:10px;
+    margin-bottom:18px;
+    flex-wrap:wrap;
+    font-size:0.9em;
+  }
+  select{
+    font-family:inherit;
+    padding:6px 8px;
+    border-radius:4px;
+    border:1px solid var(--line);
+    background:#fffdf7;
+  }
+  .name-banner{
+    text-align:center;
+    margin-bottom:6px;
+  }
+  .name-banner .name{
+    font-size:1.6em;
+    font-weight:bold;
+    color:var(--maroon-dark);
+  }
+  .name-banner .tagline{
+    font-style:italic;
+    color:#5a4630;
+    font-size:1.05em;
+    margin-top:2px;
+  }
+  hr{
+    border:none;
+    border-top:2px solid var(--line);
+    margin:18px 0;
+  }
+  .grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:14px 22px;
+  }
+  @media (max-width:600px){
+    .grid{ grid-template-columns:1fr; }
+    .sheet{ padding:20px 18px 28px; }
+  }
+  .field{
+    background:rgba(255,255,255,0.35);
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:10px 12px;
+    position:relative;
+  }
+  .field label{
+    display:block;
+    text-transform:uppercase;
+    letter-spacing:1px;
+    font-size:0.7em;
+    color:var(--maroon-dark);
+    font-weight:bold;
+    margin-bottom:4px;
+  }
+  .field .value{
+    font-size:1.05em;
+    line-height:1.3;
+  }
+  .field .reroll{
+    position:absolute;
+    top:8px;
+    right:8px;
+    background:none;
+    border:none;
+    color:var(--maroon);
+    font-size:1.1em;
+    padding:2px 5px;
+    line-height:1;
+  }
+  .field .reroll:hover{ color:var(--maroon-dark); transform:none; background:none;}
+  .field.locked{ box-shadow:inset 0 0 0 2px var(--gold); }
+  .quirk-box{
+    grid-column:1/-1;
+    background:#fbf2d8;
+    border:1px dashed var(--gold);
+  }
+  .quirk-box .value{
+    font-size:1.25em;
+    font-weight:bold;
+    color:var(--maroon-dark);
+  }
+  .full{
+    grid-column:1/-1;
+  }
+  footer{
+    text-align:center;
+    color:#8a7a5c;
+    font-size:0.8em;
+    margin-top:22px;
+  }
+  .copy-msg{
+    text-align:center;
+    font-size:0.85em;
+    color:var(--maroon-dark);
+    min-height:18px;
+    margin-top:6px;
+  }
+</style>
+</head>
+<body>
+<div class="sheet">
+  <h1>&#9876; NPC Forge &#9876;</h1>
+  <p class="subtitle">An extensive random NPC generator for D&amp;D 5e &mdash; expanded species &amp; two-word quirks</p>
+
+  <div class="filters">
+    <label for="speciesFilter">Species:</label>
+    <select id="speciesFilter"></select>
+  </div>
+
+  <div class="controls">
+    <button id="genBtn">&#127922; Generate NPC</button>
+    <button id="copyBtn" class="secondary">&#128203; Copy to clipboard</button>
+    <button id="clearLocksBtn" class="secondary">&#128275; Clear locks</button>
+  </div>
+
+  <div class="name-banner">
+    <div class="name" id="npcName">Click Generate</div>
+    <div class="tagline" id="npcTagline"></div>
+  </div>
+
+  <hr>
+
+  <div class="grid">
+    <div class="field quirk-box" data-key="quirk">
+      <label>Defining Quirk</label>
+      <div class="value" id="f-quirk">&mdash;</div>
+      <button class="reroll" title="lock/reroll">&#127922;</button>
+    </div>
+
+    <div class="field" data-key="species">
+      <label>Species</label>
+      <div class="value" id="f-species">&mdash;</div>
+      <button class="reroll" title="lock/reroll">&#127922;</button>
+    </div>
+    <div class="field" data-key="gender">
+      <label>Gender</label>
+      <div class="value" id="f-gender">&mdash;</div>
+      <button class="reroll" title="lock/reroll">&#127922;</button>
+    </div>
+    <div class="field" data-key="occupation">
+      <label>Occupation</label>
+      <div class="value" id="f-occupation">&mdash;</div>
+      <button class="reroll" title="lock/reroll">&#127922;</button>
+    </div>
+    <div class="field" data-key="alignment">
+      <label>Alignment</label>
+      <div class="value" id="f-alignment">&mdash;</div>
+      <button class="reroll" title="lock/reroll">&#127922;</button>
+    </div>
+    <div class="field" data-key="trait">
+      <label>Personality Trait</label>
+      <div class="value" id="f-trait">&mdash;</div>
+      <button class="reroll" title="lock/reroll">&#127922;</button>
+    </div>
+    <div class="field" data-key="voice">
+      <label>Voice / Mannerism</label>
+      <div class="value" id="f-voice">&mdash;</div>
+      <button class="reroll" title="lock/reroll">&#127922;</button>
+    </div>
+    <div class="field" data-key="bond">
+      <label>Bond</label>
+      <div class="value" id="f-bond">&mdash;</div>
+      <button class="reroll" title="lock/reroll">&#127922;</button>
+    </div>
+    <div class="field" data-key="flaw">
+      <label>Flaw</label>
+      <div class="value" id="f-flaw">&mdash;</div>
+      <button class="reroll" title="lock/reroll">&#127922;</button>
+    </div>
+    <div class="field full" data-key="secret">
+      <label>Secret / Hook</label>
+      <div class="value" id="f-secret">&mdash;</div>
+      <button class="reroll" title="lock/reroll">&#127922;</button>
+    </div>
+  </div>
+
+  <div class="copy-msg" id="copyMsg"></div>
+  <footer>Click a field's &#127922; to reroll just that field. Shift-click (or right-click) to lock/unlock a field so Generate leaves it alone.</footer>
+</div>
+
+<script>
+// ---------- DATA ----------
+const SPECIES = [
+  "Human","Dwarf (Hill)","Dwarf (Mountain)","Duergar (Gray Dwarf)",
+  "Elf (High)","Elf (Wood)","Elf (Drow)","Elf (Rodarian)","Eladrin","Sea Elf","Shadar-kai",
+  "Half-Elf","Half-Orc",
+  "Halfling (Lightfoot)","Halfling (Stout)","Ghostwise Halfling",
+  "Gnome (Forest)","Gnome (Rock)","Deep Gnome (Svirfneblin)","Mousling",
+  "Dragonborn","Tiefling","Aasimar",
+  "Genasi (Air)","Genasi (Earth)","Genasi (Fire)","Genasi (Water)",
+  "Aarakocra","Firbolg","Goliath","Kenku","Lizardfolk","Tabaxi",
+  "Bugbear","Goblin","Hobgoblin","Kobold","Orc","Yuan-ti Pureblood",
+  "Gith (Githyanki)","Gith (Githzerai)","Changeling","Kalashtar",
+  "Shifter (Beasthide)","Shifter (Longtooth)","Shifter (Swiftstride)","Shifter (Wildhunt)",
+  "Warforged","Simic Hybrid","Vedalken","Loxodon","Centaur","Minotaur",
+  "Satyr","Fairy","Harengon","Owlin","Autognome","Plasmoid","Thri-kreen",
+  "Verdan","Reborn","Hexblood","Giff","Astral Elf",
+  "Triton","Grung","Locathah","Tortle"
+];
+
+// Species shown under their own "Aquatic" separator at the bottom of the dropdown.
+const AQUATIC_SPECIES = ["Triton","Grung","Locathah","Tortle"];
+
+// Tritons come in three cosmetic varieties — these are NOT separate species entries,
+// just a flavor tag rolled alongside the Triton species (like "Triton (Siren)").
+const TRITON_VARIETIES = ["Tideling","Deepling","Siren"];
+
+const GENDERS = ["Male","Female","Nonbinary","Androgynous","Fluid","Unclear/ambiguous"];
+// Weighted so Male/Female come up most often, other options still possible.
+const GENDER_WEIGHTS = { Male:34, Female:34, Nonbinary:12, Androgynous:10, Fluid:6, "Unclear/ambiguous":4 };
+
+function pickWeighted(weightMap){
+  const entries = Object.entries(weightMap);
+  const total = entries.reduce((sum,[,w])=>sum+w, 0);
+  let roll = Math.random()*total;
+  for(const [value,w] of entries){
+    if(roll < w) return value;
+    roll -= w;
+  }
+  return entries[entries.length-1][0];
+}
+
+const OCCUPATIONS = [
+  "Blacksmith","Innkeeper","Merchant trader","Beggar","Guard captain","City watchman",
+  "Hedge wizard","Alchemist","Herbalist","Fortune teller","Grave digger","Bounty hunter",
+  "Smuggler","Fence","Cartographer","Shipwright","Fisher","Farmer","Miller","Butcher",
+  "Tanner","Cobbler","Tailor","Scribe","Librarian","Sage","Priest","Acolyte","Cultist",
+  "Assassin","Thief","Pickpocket","Con artist","Gambler","Bard/Musician","Actor",
+  "Mercenary","Bodyguard","Retired soldier","Deserter","Spy","Diplomat","Noble courtier",
+  "Tax collector","Moneylender","Undertaker","Executioner","Jailer","Apothecary",
+  "Beast trainer","Stablehand","Wagon driver","Miner","Prospector","Woodcutter",
+  "Hunter/Trapper","Shepherd","Brewer","Baker","Cook/Chef","Innkeeper's daughter/son",
+  "Street performer","Tattoo artist","Gravekeeper","Ferryman","Lighthouse keeper",
+  "Adventuring guide","Mapless wanderer","Guild enforcer","Toll collector"
+];
+
+const ALIGNMENTS = [
+  "Lawful Good","Neutral Good","Chaotic Good",
+  "Lawful Neutral","True Neutral","Chaotic Neutral",
+  "Lawful Evil","Neutral Evil","Chaotic Evil"
+];
+
+const TRAITS = [
+  "Overly formal with strangers","Brutally honest to a fault","Constantly quotes proverbs",
+  "Never remembers names","Obsessed with cleanliness","Terrified of magic",
+  "Fascinated by outsiders","Suspicious of authority","Generous to strangers",
+  "Hoards small trinkets","Speaks only in questions","Refuses to sit down",
+  "Loudly optimistic always","Quietly pessimistic always","Compulsively counts coins",
+  "Flatters everyone excessively","Argues just for sport","Avoids direct answers",
+  "Overprotective of belongings","Fiercely loyal to friends","Easily distracted by shiny things",
+  "Talks about the weather","Never admits fault","Apologizes constantly",
+  "Boasts about past glories","Deeply superstitious","Craves attention",
+  "Prefers solitude always","Loves telling jokes","Distrusts strangers instantly",
+  "Names every weapon","Sketches strangers' faces","Hums while working",
+  "Collects unusual coins","Refuses to raise voice","Quotes old war stories",
+  "Always finishes others' sentences","Keeps a lucky charm close","Never travels without a map",
+  "Insists on formal titles","Feeds every stray animal","Rehearses conversations aloud"
+];
+
+const QUIRKS = [
+  "Annoying","Knightly","Obsessive","Paranoid","Zealous","Melancholic","Flamboyant",
+  "Stoic","Vain","Grumpy","Nostalgic","Wrathful","Gluttonous","Slothful","Envious",
+  "Greedy","Lustful","Chivalrous","Treacherous","Naive","Cynical","Idealistic",
+  "Pragmatic","Superstitious","Fatalistic","Whimsical","Eccentric","Pretentious",
+  "Humble","Arrogant","Boisterous","Reserved","Impulsive","Calculating","Reckless",
+  "Cautious","Gullible","Shrewd","Sardonic","Jovial","Somber","Manic","Serene",
+  "Volatile","Stubborn","Fickle","Loyal","Duplicitous","Vengeful","Forgiving",
+  "Ruthless","Merciful","Cruel","Kindly","Selfish","Selfless","Meek","Domineering",
+  "Servile","Rebellious","Curious","Apathetic","Passionate","Charming","Awkward",
+  "Graceful","Clumsy","Meticulous","Disciplined","Chaotic","Devout","Heretical",
+  "Mystical","Skeptical","Trusting","Secretive","Boastful","Modest","Vindictive",
+  "Compassionate","Brooding","Jaded","Earnest","Theatrical","Austere","Hedonistic",
+  "Ascetic","Martial","Scholarly","Mercantile","Feral","Courtly","Uncouth",
+  "Refined","Brash","Timid","Haughty","Genial","Dour","Mirthful","Spiteful",
+  "Callous","Wistful","Insufferable","Overzealous","Foolhardy",
+  "Melodramatic","Taciturn","Garrulous","Puritanical","Miserly","Prodigal",
+  "Impetuous","Belligerent","Xenophobic","Cosmopolitan","Urbane","Rustic",
+  "Dogmatic","Puckish","Mercurial","Phlegmatic","Fastidious","Slovenly",
+  "Cavalier","Officious","Truculent","Docile","Feisty","Irascible",
+  "Genteel","Boorish","Erudite","Solemn","Frivolous","Opulent",
+  "Extravagant","Wanton","Bawdy","Wry","Droll","Buoyant",
+  "Loquacious","Cryptic","Cunning","Credulous","Gregarious","Misanthropic",
+  "Avaricious","Steadfast","Valorous","Intrepid","Audacious","Prudent",
+  "Sagacious","Astute","Oblivious"
+];
+
+const VOICES = [
+  "Gravelly bass voice","High reedy voice","Speaks very slowly","Speaks very fast",
+  "Rolls every 'r'","Lisps slightly","Whispers when nervous","Booming projection always",
+  "Monotone delivery","Sing-song cadence","Foreign lilting accent","Nasal voice",
+  "Clears throat often","Trailing off mid-sentence","Overuses big words",
+  "Uses lots of slang","Formal old-fashioned phrasing","Interrupts constantly",
+  "Repeats last word said","Answers questions with questions",
+  "Drops into a foreign tongue","Speaks entirely in metaphors","Hisses sibilants sharply",
+  "Talks with hands constantly","Punctuates sentences with sighs","Mumbles asides to no one"
+];
+
+const BONDS = [
+  "Owes a life-debt","Protects a younger sibling","Devoted to a mentor",
+  "Seeking a lost love","Guards a family heirloom","Loyal to their guild",
+  "Sworn to a dead friend","Raising an orphan","Serves a secret patron",
+  "Bound by an old oath","Loves their hometown","Indebted to a crime lord",
+  "Cares for aging parent","Tied to a cursed item","Devoted to their god",
+  "Protects a hidden shrine","Owes their life to a stranger","Searching for a missing sibling",
+  "Loyal to a fallen kingdom","Bound to a childhood promise","Answers to a secret society"
+];
+
+const FLAWS = [
+  "Greedy beyond reason","Cannot resist a wager","Quick to anger",
+  "Terrible liar","Deeply arrogant","Cowardly under pressure",
+  "Addicted to drink","Hopelessly romantic","Holds grudges forever",
+  "Reckless with money","Easily manipulated","Overly trusting",
+  "Cannot keep secrets","Obsessively jealous","Painfully indecisive",
+  "Chronically overcommits","Can't resist a dare","Picks fights needlessly",
+  "Hoards resources selfishly","Lies about their past","Underestimates every threat"
+];
+
+const SECRETS = [
+  "Secretly works for a rival faction","Is not who they claim to be",
+  "Once betrayed a close friend","Hides a magical curse",
+  "Is being blackmailed quietly","Knows the location of buried treasure",
+  "Fled a crime in another city","Is secretly of noble blood",
+  "Made a pact with a dark power","Is searching for a way to break a curse",
+  "Witnessed a murder years ago","Owes a debt to a dangerous creature",
+  "Is an exiled royal in hiding","Has a hidden twin","Is slowly turning into something else",
+  "Killed their own mentor","Stole something priceless once","Is dying and hiding it",
+  "Serves two masters secretly","Faked their own death once","Carries a forbidden artifact",
+  "Was once someone else entirely","Is bound to a vengeful spirit","Knows a god's true name"
+];
+
+// Each species family gets its own real-world-flavored naming convention instead of
+// one generic fantasy pool. groupKey -> { male, female, neutral, surnames }.
+// surnames: [] means the culture uses first names only (no family name appended).
+const NAME_GROUPS = {
+  // Humans draw from real-world cultures instead of one generic pool. Each culture is
+  // a self-contained block so first name + surname stay authentically paired — the
+  // generator picks a culture at random, then a name from within it.
+  human: {
+    cultures: [
+      { // Mexican / Latin American
+        male: ["Alejandro","Rodrigo","Emiliano","Salvador","Joaquín","Rafael","Mateo","Ignacio","Cristian","Tomás"],
+        female: ["Guadalupe","Ximena","Camila","Valentina","Fernanda","Itzel","Renata","Dolores","Carmen","Alejandra"],
+        neutral: ["Alexis","Cruz","Trinidad","Andrea","Guadalupe"],
+        surnames: ["Hernández","García","Martínez","Rodríguez","López","González","Pérez","Sánchez","Ramírez","Torres"]
+      },
+      { // Chinese
+        male: ["Wei","Jian","Hao","Feng","Ming","Jun","Tao","Yong","Zhi","Cheng"],
+        female: ["Mei","Ling","Xiu","Yan","Jing","Fang","Hui","Xia","Qing","Ying"],
+        neutral: ["Yu","Xin","Jia","Le","Rui"],
+        surnames: ["Wang","Li","Zhang","Liu","Chen","Yang","Huang","Zhao","Wu","Zhou"]
+      },
+      { // Irish
+        male: ["Cian","Declan","Fionn","Eoin","Rory","Liam","Seamus","Cormac","Niall","Ronan"],
+        female: ["Saoirse","Aoife","Niamh","Ciara","Roisin","Sorcha","Maeve","Orla","Brigid","Fiona"],
+        neutral: ["Casey","Rowan","Quinn","Blaine","Riley"],
+        surnames: ["Murphy","Kelly","O'Sullivan","Walsh","O'Brien","Ryan","O'Connor","Byrne","Doyle","Kennedy"]
+      },
+      { // Indian
+        male: ["Arjun","Vikram","Rohan","Aditya","Karan","Rajesh","Sanjay","Aryan","Vivek","Dev"],
+        female: ["Priya","Ananya","Divya","Kavya","Neha","Pooja","Riya","Shreya","Anjali","Meera"],
+        neutral: ["Kiran","Amar","Jyoti","Simran","Arun"],
+        surnames: ["Sharma","Patel","Kapoor","Gupta","Reddy","Iyer","Nair","Chopra","Malhotra","Rao"]
+      },
+      { // West African (Yoruba/Igbo-inspired)
+        male: ["Chidi","Emeka","Kwame","Tunde","Femi","Obinna","Adeyemi","Chukwu","Kofi","Kayode"],
+        female: ["Amara","Adaeze","Ngozi","Folake","Chiamaka","Yemi","Zainab","Amina","Ifeoma","Nneka"],
+        neutral: ["Ade","Chinelo","Kelechi","Chibundu","Uche"],
+        surnames: ["Okonkwo","Eze","Adebayo","Okoye","Mensah","Diallo","Abara","Nwosu","Balogun","Okafor"]
+      },
+      { // East African (Swahili/Horn of Africa-inspired)
+        male: ["Amani","Baraka","Juma","Jelani","Rashidi","Tafari","Yohannes","Dawit","Abebe","Kito"],
+        female: ["Zawadi","Nia","Wanjiru","Abeba","Almaz","Selam","Fatuma","Nakato","Zuri","Makena"],
+        neutral: ["Nyota","Jabari","Sefu","Adisa","Kesi"],
+        surnames: ["Mwangi","Kimani","Otieno","Njoroge","Haile","Bekele","Kariuki","Odhiambo"]
+      },
+      { // Arabic / Middle Eastern
+        male: ["Omar","Yusuf","Khalid","Hassan","Tariq","Karim","Sami","Zaid","Rami","Amir"],
+        female: ["Layla","Yasmin","Noor","Rania","Salma","Hana","Dalia","Mariam","Reem","Huda"],
+        neutral: ["Nour","Amal","Kamal","Rashid","Bilal"],
+        surnames: ["Al-Farsi","Haddad","Nasser","Saleh","Khoury","Mansour","Aziz","Sabbagh","Farouk","Karam"]
+      },
+      { // Japanese
+        male: ["Haruto","Sota","Ren","Yuto","Daiki","Kaito","Hiroshi","Takeshi","Kenji","Shin"],
+        female: ["Sakura","Yui","Aoi","Hina","Mio","Rin","Yuna","Akari","Nanami","Emi"],
+        neutral: ["Kei","Haru","Yuu","Sora","Aki"],
+        surnames: ["Sato","Suzuki","Takahashi","Tanaka","Watanabe","Ito","Yamamoto","Nakamura","Kobayashi","Saito"]
+      },
+      { // Western European
+        male: ["Alistair","William","Henri","Friedrich","Connor","Felix","Sebastian","Gustav","Nathaniel","Desmond"],
+        female: ["Charlotte","Eleanor","Margot","Isabelle","Greta","Josephine","Annika","Beatrix","Vivienne","Clara"],
+        neutral: ["Skyler","Robin","Alex","River","Kai"],
+        surnames: ["Andersson","Kowalski","Dubois","Müller","Fitzgerald","Whitmore","Rossi","Novak","Larsen","Van Berg"]
+      }
+    ]
+  },
+  dwarf: {
+    male: ["Thorin","Balin","Ragnar","Bjorn","Ulfgar","Dagnar","Thrain","Gundren","Baern","Harbek","Kildrak","Torvald",
+            "Grimbold","Durgan","Kazrak","Brondar","Olgrim"],
+    female: ["Helga","Sigrun","Freydis","Dagna","Vistra","Brenna","Ingrid","Astrid","Runa","Kathra","Torgga","Yundra",
+              "Freyja","Katrin","Sigga","Brunnhilde","Thyra"],
+    neutral: ["Bruenor","Fargrim","Nordi","Skalfi","Eldeth","Falkrunn","Orsik","Vandrik","Storn","Brekka","Halvar"],
+    surnames: ["Battlehammer","Ironfist","Stonebeard","Forgeheart","Deepdelver","Anvilhorn","Goldbeard","Rockfist","Steelshadow","Grimaxe",
+                "Emberforge","Frostbeard","Coalheart","Dourstone"]
+  },
+  elfHigh: {
+    male: ["Aramil","Erevan","Galinndan","Heian","Immeral","Lucan","Peren","Riardon","Silvyr","Thamior",
+            "Berrian","Dellenar","Ilphelkiir","Naerim","Soveliss"],
+    female: ["Anastrianna","Antinua","Bethrynna","Dara","Enna","Felosial","Ielenia","Keyleth","Mialee","Sariel",
+              "Th'orra","Naivara","Quelenna","Selsynsel","Terithran"],
+    neutral: ["Ivellios","Laucian","Quarion","Xanaphia","Aelar","Ganamede","Immerelle","Vaelin"],
+    surnames: ["Amakiir","Amastacia","Galanodel","Holimion","Liadon","Meliamne","Siannodel","Xiloscient",
+                "Nailo","Sunridge","Moonwhisper","Starweave"]
+  },
+  elfWood: {
+    male: ["Aust","Beiro","Carric","Divian","Faelar","Hadarai","Loucan","Rolen","Themis","Vane",
+            "Aeravin","Dorindil","Nimoril","Silwen","Tannivar"],
+    female: ["Anaea","Boelia","Faralda","Isolime","Meriele","Sylvanni","Waeliris","Nightbreeze","Quillathe",
+              "Elariel","Miriwen","Ravenna","Sylviel","Thessaly"],
+    neutral: ["Fenrisk","Willowyn","Dewfrost","Sabrisel","Larkwing","Fenlark","Bracken","Sabrisyn"],
+    surnames: ["Greenleaf","Windwhisper","Moonbrook","Fernwalker","Dewshine","Silverfrond","Brightbough","Tidecaller",
+                "Oakenshade","Fawnstep","Thistlebrook","Hollyfen"]
+  },
+  drow: {
+    male: ["Drizzt","Zaknafein","Jarlaxle","Berg'inyon","Dantrag","Gromph","Nalfein","Rizzen","Uthegental","Vhaeraun",
+            "Belshalor","Kaelin","Mavros","Ryltar","Xundus"],
+    female: ["Liriel","Vierna","Malice","Briza","Quenthel","Triel","Minolin","Zeerith","Yvonnel","Shakti",
+              "Sabal","Wynafey","Zesstra","Charinida","Mylyul"],
+    neutral: ["Solaufein","Valas","Kimmuriel","Andzrel","Ryld","Ardulace","Zhingaxx","Vhaerum"],
+    surnames: ["Do'Urden","Baenre","Fey-Branche","Hun'ett","Melarn","Despana","Xorlarrin","Vandree",
+                "Auvryndar","Zauvirr","Kilsek","Jaelre"]
+  },
+  shadar: {
+    male: ["Vashaen","Kaldrex","Threndal","Morvane","Sythrak","Doresain","Zephrain","Ombresh","Vaelkrist","Ghereth","Nyxil","Threndil"],
+    female: ["Iselda","Nyxara","Sevrine","Ombrielle","Vhalira","Ashrin","Thessia","Umbryth","Kaelestra","Sevanya","Morwyth","Ashryn"],
+    neutral: ["Grael","Nyx","Vesh","Thren","Morwyn","Duskryn","Vantha","Grimsel","Voidra"],
+    surnames: ["Duskrend","Grimshade","Voidwhisper","Ashenveil","Nightflay","Sorrowveil","Netherfold","Grimtide","Duskmourn","Shadewane"]
+  },
+  rodarian: {
+    // Russian roots blended with Elvish endings; some lean almost fully Russian, others almost fully Elvish.
+    male: ["Nikolathas","Dmitrion","Yevgendil","Vladithir","Rusladan","Borislyn","Fyodorian",
+            "Mirothiel","Sashendor","Igoreth","Volkarion","Pavelis","Stanithrandil","Anatolwyn",
+            "Kirilthas","Vasilion","Grigorendil","Romanadil","Tarasyn","Oleksandriel",
+            "Pyotr","Ivanthil","Sergeidor","Antokhas","Mikhalindor","Konstantyn","Fyodrasil",
+            "Arkadithas","Yegorwyn","Denisrandil","Olegathis","Timurion","Maksimwyn","Alexeidor",
+            "Grishavel","Leonidrath","Borivan","Vadimeth","Zakharion","Semyonwyn","Ruslan",
+            "Anton","Yakovendil","Stepandril"],
+    female: ["Katyariel","Irinathiel","Svetlindra","Oksanelle","Vasilisyn","Zoyathiel","Ninelith",
+              "Miroslindra","Tatianarwen","Larissiel","Nadyendra","Yeleniel","Katarindil","Oleswyn",
+              "Sonyathriel","Anushkariel","Galinadriel","Marfariel","Ksenithiel","Yaroslyn",
+              "Roscova","Anastasyth","Yelizavendra","Marinathiel","Veronikael","Yuliandra",
+              "Alinariel","Snezhanwyn","Zlataveth","Milenariel","Darinathiel","Yaroslavendra",
+              "Anfisathiel","Taisiyawyn","Feodoravel","Nastasyndra","Polina","Zinaidriel",
+              "Lyudmirath","Radoslyn"],
+    neutral: ["Sashenwyn","Vanyathis","Zorindel","Yurithiel","Slavendor","Mirelith","Kostyariel",
+               "Danilwyn","Ruslindor","Feodrienne","Bogdathiel","Yaronwen","Vitaliel","Nikithrenn",
+               "Solanthiev","Artemwyn","Yaropolk","Bogdanathis","Vladlenor","Slavaethil"],
+    surnames: ["Volkovendil","Zimarion","Belanovethel","Nightingorodov","Chernithrandir","Solovyndor",
+                "Morozielle","Rodionwyn","Serebrothel","Vetrovendor","Zolotarien","Krasnovithel",
+                "Voronthiel","Lunarova","Tikhoryn"]
+  },
+  halfElf: {
+    male: ["Corin","Elyas","Farron","Joreth","Selvan","Doran","Kael","Rendil","Sarvane","Theron","Ashlin"],
+    female: ["Elara","Miren","Sable","Thess","Yvaine","Larien","Naeva","Rosamund","Sherise","Wenna","Elenya"],
+    neutral: ["Ashlen","Rin","Vale","Wren","Kest","Faelan","Loras","Tamsin","Brennic"],
+    surnames: ["Duskharrow","Fairwind","Halfmoon","Twinborn","Brightveil","Willowmere","Starholt","Graycross","Farbridge"]
+  },
+  halfling: {
+    male: ["Wendel","Milo","Alfrick","Perrin","Toby","Wilcome","Bramwell","Cade","Deltan","Finnan","Otho","Sancho","Wilbert","Toben"],
+    female: ["Dilly","Rosemary","Marigold","Tansy","Pip","Willow","Poppy","Betony","Primrose","Clover","Euphemia","Melilot","Belba","Rosie"],
+    neutral: ["Lidda","Merric","Nedda","Ollie","Robbin","Tam","Merry","Sam","Fatty"],
+    surnames: ["Underbough","Goodbarrel","Tealeaf","Hilltopple","Brushgather","Greenbottle","Puddlefoot","Applecheek",
+                "Goodbody","Bracegirdle","Took","Brandybuck"]
+  },
+  gnome: {
+    male: ["Fonkin","Zook","Alston","Boddynock","Dimble","Frug","Gimble","Namfoodle","Roondar","Zellifar","Glim","Tobble","Wick","Corkle"],
+    female: ["Bimpnottin","Caramip","Duvamil","Ella","Kithri","Lorilla","Nissa","Roywyn","Shamil","Wrenn","Tilly","Vesper","Nib","Frizzle"],
+    neutral: ["Ditha","Nyxel","Orryn","Pog","Zeb","Sprocket","Whim","Tinker"],
+    surnames: ["Beren","Daergel","Folkor","Garrick","Nackle","Murnig","Ningel","Raulnor","Scheppen","Turen",
+                "Sparkwrench","Gearwhistle","Bubblebrook"]
+  },
+  // Mouslings: two-word names pairing an earthen material with an abstract word that
+  // describes them (e.g. Diamond Authority, Carbon Dodecahedron, Lodestone Hearth).
+  // Not gendered — the same material list feeds every bucket, and the combination
+  // with the descriptor list is where the variety comes from (80 x 90 = 7,200+ names).
+  mousling: {
+    male: ["Diamond","Carbon","Lodestone","Quartz","Granite","Obsidian","Mica","Basalt","Copper","Iron",
+            "Marble","Slate","Amber","Flint","Coal","Graphite","Feldspar","Pyrite","Onyx","Shale",
+            "Limestone","Sandstone","Tin","Bronze","Silver","Gold","Cobalt","Nickel","Zinc","Mercury",
+            "Sulfur","Clay","Chalk","Gravel","Bedrock","Magnetite","Gypsum","Talc","Jasper",
+            "Platinum","Titanium","Aluminum","Chromium","Manganese","Tungsten","Uranium","Radium","Sodium","Potassium",
+            "Calcium","Magnesium","Silica","Dolomite","Anthracite","Bauxite","Cinnabar","Galena","Hematite","Amethyst",
+            "Topaz","Garnet","Peridot","Turquoise","Beryl","Corundum","Ruby","Sapphire","Emerald","Opal",
+            "Tourmaline","Fluorite","Halite","Barite","Azurite","Serpentine","Travertine","Alabaster","Schist","Loam",
+            "Hydrogen","Helium","Lithium","Beryllium","Boron","Nitrogen","Oxygen","Fluorine","Neon","Scandium",
+            "Vanadium","Gallium","Germanium","Arsenic","Selenium","Bromine","Krypton","Rubidium","Strontium","Yttrium",
+            "Zirconium","Niobium","Molybdenum","Ruthenium","Rhodium","Palladium","Cadmium","Indium","Antimony","Tellurium",
+            "Iodine","Xenon","Cesium","Barium","Lanthanum","Cerium","Neodymium","Samarium","Europium","Gadolinium",
+            "Terbium","Dysprosium","Holmium","Erbium","Thulium","Ytterbium","Lutetium","Hafnium","Tantalum","Rhenium",
+            "Osmium","Iridium","Thallium","Lead","Bismuth","Polonium","Radon","Francium","Actinium","Thorium",
+            "Malachite","Chrysoprase","Chrysocolla","Rhodochrosite","Lapis","Jade","Jadeite","Nephrite","Moonstone","Sunstone",
+            "Labradorite","Aquamarine","Citrine","Peridotite","Andesite","Rhyolite","Pumice","Gneiss","Quartzite","Chert",
+            "Agate","Carnelian","Bloodstone","Spinel","Zircon","Tanzanite","Kunzite","Iolite","Sodalite","Sugilite",
+            "Charoite","Rhodonite","Ironstone","Cassiterite","Bornite","Chalcopyrite","Sphalerite","Stibnite","Realgar","Orpiment",
+            "Wulfenite","Vanadinite","Scheelite","Wolframite","Monazite","Xenotime","Columbite","Tantalite","Uraninite","Apatite",
+            "Rutile","Anatase","Brookite","Ilmenite","Chromite","Perovskite","Pyroxene","Amphibole","Olivine","Orthoclase",
+            "Microcline","Albite","Anorthite","Muscovite","Biotite","Kaolinite","Bentonite","Vermiculite","Zeolite","Diatomite",
+            "Loess","Marl","Silt","Peat","Tar","Slag","Humus","Permafrost","Tundra","Sediment","Bedstone","Ore",
+            "Ashstone","Ferrite","Bogiron","Redclay","Blacksand","Whitesand","Riverstone","Graywacke","Mudstone","Siltstone",
+            "Claystone","Sandloam","Cinderite","Emberstone","Frostrock","Saltstone","Coalash","Tinstone","Copperore","Ironore"],
+    female: ["Diamond","Carbon","Lodestone","Quartz","Granite","Obsidian","Mica","Basalt","Copper","Iron",
+              "Marble","Slate","Amber","Flint","Coal","Graphite","Feldspar","Pyrite","Onyx","Shale",
+              "Limestone","Sandstone","Tin","Bronze","Silver","Gold","Cobalt","Nickel","Zinc","Mercury",
+              "Sulfur","Clay","Chalk","Gravel","Bedrock","Magnetite","Gypsum","Talc","Jasper",
+              "Platinum","Titanium","Aluminum","Chromium","Manganese","Tungsten","Uranium","Radium","Sodium","Potassium",
+              "Calcium","Magnesium","Silica","Dolomite","Anthracite","Bauxite","Cinnabar","Galena","Hematite","Amethyst",
+              "Topaz","Garnet","Peridot","Turquoise","Beryl","Corundum","Ruby","Sapphire","Emerald","Opal",
+              "Tourmaline","Fluorite","Halite","Barite","Azurite","Serpentine","Travertine","Alabaster","Schist","Loam",
+              "Hydrogen","Helium","Lithium","Beryllium","Boron","Nitrogen","Oxygen","Fluorine","Neon","Scandium",
+              "Vanadium","Gallium","Germanium","Arsenic","Selenium","Bromine","Krypton","Rubidium","Strontium","Yttrium",
+              "Zirconium","Niobium","Molybdenum","Ruthenium","Rhodium","Palladium","Cadmium","Indium","Antimony","Tellurium",
+              "Iodine","Xenon","Cesium","Barium","Lanthanum","Cerium","Neodymium","Samarium","Europium","Gadolinium",
+              "Terbium","Dysprosium","Holmium","Erbium","Thulium","Ytterbium","Lutetium","Hafnium","Tantalum","Rhenium",
+              "Osmium","Iridium","Thallium","Lead","Bismuth","Polonium","Radon","Francium","Actinium","Thorium",
+              "Malachite","Chrysoprase","Chrysocolla","Rhodochrosite","Lapis","Jade","Jadeite","Nephrite","Moonstone","Sunstone",
+              "Labradorite","Aquamarine","Citrine","Peridotite","Andesite","Rhyolite","Pumice","Gneiss","Quartzite","Chert",
+              "Agate","Carnelian","Bloodstone","Spinel","Zircon","Tanzanite","Kunzite","Iolite","Sodalite","Sugilite",
+              "Charoite","Rhodonite","Ironstone","Cassiterite","Bornite","Chalcopyrite","Sphalerite","Stibnite","Realgar","Orpiment",
+              "Wulfenite","Vanadinite","Scheelite","Wolframite","Monazite","Xenotime","Columbite","Tantalite","Uraninite","Apatite",
+              "Rutile","Anatase","Brookite","Ilmenite","Chromite","Perovskite","Pyroxene","Amphibole","Olivine","Orthoclase",
+              "Microcline","Albite","Anorthite","Muscovite","Biotite","Kaolinite","Bentonite","Vermiculite","Zeolite","Diatomite",
+              "Loess","Marl","Silt","Peat","Tar","Slag","Humus","Permafrost","Tundra","Sediment","Bedstone","Ore",
+              "Ashstone","Ferrite","Bogiron","Redclay","Blacksand","Whitesand","Riverstone","Graywacke","Mudstone","Siltstone",
+              "Claystone","Sandloam","Cinderite","Emberstone","Frostrock","Saltstone","Coalash","Tinstone","Copperore","Ironore"],
+    neutral: ["Diamond","Carbon","Lodestone","Quartz","Granite","Obsidian","Mica","Basalt","Copper","Iron",
+               "Marble","Slate","Amber","Flint","Coal","Graphite","Feldspar","Pyrite","Onyx","Shale",
+               "Limestone","Sandstone","Tin","Bronze","Silver","Gold","Cobalt","Nickel","Zinc","Mercury",
+               "Sulfur","Clay","Chalk","Gravel","Bedrock","Magnetite","Gypsum","Talc","Jasper",
+               "Platinum","Titanium","Aluminum","Chromium","Manganese","Tungsten","Uranium","Radium","Sodium","Potassium",
+               "Calcium","Magnesium","Silica","Dolomite","Anthracite","Bauxite","Cinnabar","Galena","Hematite","Amethyst",
+               "Topaz","Garnet","Peridot","Turquoise","Beryl","Corundum","Ruby","Sapphire","Emerald","Opal",
+               "Tourmaline","Fluorite","Halite","Barite","Azurite","Serpentine","Travertine","Alabaster","Schist","Loam",
+               "Hydrogen","Helium","Lithium","Beryllium","Boron","Nitrogen","Oxygen","Fluorine","Neon","Scandium",
+               "Vanadium","Gallium","Germanium","Arsenic","Selenium","Bromine","Krypton","Rubidium","Strontium","Yttrium",
+               "Zirconium","Niobium","Molybdenum","Ruthenium","Rhodium","Palladium","Cadmium","Indium","Antimony","Tellurium",
+               "Iodine","Xenon","Cesium","Barium","Lanthanum","Cerium","Neodymium","Samarium","Europium","Gadolinium",
+               "Terbium","Dysprosium","Holmium","Erbium","Thulium","Ytterbium","Lutetium","Hafnium","Tantalum","Rhenium",
+               "Osmium","Iridium","Thallium","Lead","Bismuth","Polonium","Radon","Francium","Actinium","Thorium",
+               "Malachite","Chrysoprase","Chrysocolla","Rhodochrosite","Lapis","Jade","Jadeite","Nephrite","Moonstone","Sunstone",
+               "Labradorite","Aquamarine","Citrine","Peridotite","Andesite","Rhyolite","Pumice","Gneiss","Quartzite","Chert",
+               "Agate","Carnelian","Bloodstone","Spinel","Zircon","Tanzanite","Kunzite","Iolite","Sodalite","Sugilite",
+               "Charoite","Rhodonite","Ironstone","Cassiterite","Bornite","Chalcopyrite","Sphalerite","Stibnite","Realgar","Orpiment",
+               "Wulfenite","Vanadinite","Scheelite","Wolframite","Monazite","Xenotime","Columbite","Tantalite","Uraninite","Apatite",
+               "Rutile","Anatase","Brookite","Ilmenite","Chromite","Perovskite","Pyroxene","Amphibole","Olivine","Orthoclase",
+               "Microcline","Albite","Anorthite","Muscovite","Biotite","Kaolinite","Bentonite","Vermiculite","Zeolite","Diatomite",
+               "Loess","Marl","Silt","Peat","Tar","Slag","Humus","Permafrost","Tundra","Sediment","Bedstone","Ore",
+               "Ashstone","Ferrite","Bogiron","Redclay","Blacksand","Whitesand","Riverstone","Graywacke","Mudstone","Siltstone",
+               "Claystone","Sandloam","Cinderite","Emberstone","Frostrock","Saltstone","Coalash","Tinstone","Copperore","Ironore"],
+    surnames: ["Authority","Dodecahedron","Hearth","Cadence","Zenith","Paradox","Equinox","Momentum","Axiom",
+                "Sanctuary","Threshold","Cipher","Lattice","Vestige","Chronicle","Meridian","Nexus","Oracle",
+                "Parable","Echo","Aperture","Constant","Doctrine","Enigma","Fracture","Genesis","Horizon",
+                "Impasse","Junction","Continuum","Vertex","Synthesis","Precedent","Anomaly","Tangent","Prism",
+                "Spectrum","Catalyst","Equilibrium","Bastion","Covenant","Diadem","Effigy","Facet","Harbinger",
+                "Judgment","Keystone","Legacy","Mandate","Notion","Omen","Precept","Quotient","Requiem","Statute",
+                "Tenet","Umbra","Verdict","Watershed","Yield","Archetype","Bulwark","Conjecture","Decree","Epoch",
+                "Fable","Grimoire","Hypothesis","Ideology","Jurisdiction","Kinship","Litany","Manifesto","Nomenclature",
+                "Ordinance","Postulate","Quintessence","Reckoning","Sovereignty","Testament","Utterance","Vanguard",
+                "Wavelength","Yardstick","Zeitgeist","Apex","Cornerstone","Directive","Gravitas","Lexicon",
+                "Aegis","Bellwether","Cynosure","Diaspora","Elegy","Filibuster","Gambit","Halcyon","Inkling","Juggernaut",
+                "Kismet","Labyrinth","Miasma","Nadir","Obelisk","Palimpsest","Quandary","Rampart","Solstice","Tapestry",
+                "Undercurrent","Vellum","Whimsy","Yoke","Beacon","Deference","Eloquence","Fervor","Gauntlet","Homage",
+                "Insignia","Juncture","Kaleidoscope","Lineage","Mosaic","Narrative","Overture","Pretext","Query","Resonance",
+                "Stratum","Trajectory","Undertone","Vector","Wanderlust","Axis","Cascade","Denouement","Ethos","Filament",
+                "Glyph","Homily","Abstraction","Benchmark","Conundrum","Discourse","Emissary","Fulcrum","Gestalt","Hierarchy",
+                "Insurgency","Juxtaposition","Mandala","Obfuscation","Paragon","Quagmire","Reverie","Semblance","Threnody",
+                "Umbrage","Verisimilitude","Warrant","Xenolith","Yearning","Amulet","Bulletin","Cartouche","Doldrums","Eulogy",
+                "Foreboding","Gospel","Inertia","Jubilee","Keepsake","Liturgy","Mantle","Nemesis","Pantheon","Quarry",
+                "Reliquary","Scripture","Talisman","Utopia","Vigil","Zealotry","Abeyance","Bequest","Chrysalis","Dissonance",
+                "Epigraph","Fugue","Guild","Hallmark","Insight","Catharsis","Legend","Motif","Nuance","Ordeal",
+                "Portent","Quorum","Refrain","Sanctum","Treatise","Undertaking","Vestibule","Wraith",
+                "Apotheosis","Bravado","Candor","Decorum","Effrontery","Finesse","Hubris","Impetus","Jargon","Lament",
+                "Nostalgia","Obeisance","Panache","Quiescence","Rancor","Solace","Tumult","Valor","Yen","Zest",
+                "Acumen","Bravura","Diligence","Exuberance","Fortitude","Gumption","Humility","Ingenuity","Jocularity","Keenness",
+                "Levity","Mettle","Nonchalance","Opulence","Resolve","Stoicism","Tenacity","Valiance","Wit","Zeal",
+                "Ambit","Cognizance","Dexterity","Equanimity","Gallantry","Hardihood","Jubilation","Keening","Loquacity","Magnanimity",
+                "Nobility","Obstinacy","Perspicacity","Rectitude","Sagacity","Temerity","Verve","Wherewithal"]
+  },
+  orcish: {
+    male: ["Grommash","Thokk","Ugarth","Mogri","Krusk","Vrag","Zoggin","Dench","Kargash","Ruzz","Gutsnag","Brakka","Yarug","Thokrum"],
+    female: ["Ronra","Shautha","Vola","Yevelda","Grigga","Ekk","Nurza","Baggi","Ghesh","Ulla","Zharukk","Kelgra","Morzula","Vashka"],
+    neutral: ["Rendil","Feng","Holg","Shump","Grask","Uzk","Ghazak"],
+    surnames: ["Bloodfist","Skullcrusher","Ironhide","Doomhowl","Gorehammer","the Rotten","Direfang","Bonecrusher",
+                "Ragefist","Ironjaw","Bloodmaw"]
+  },
+  dragonborn: {
+    male: ["Arjhan","Balasar","Bharash","Donaar","Heskan","Kriv","Medrash","Rhogar","Shamash","Tarhun","Kepesh","Nemis","Torvic","Balask"],
+    female: ["Akara","Biri","Daar","Farideh","Harann","Kava","Mishann","Nala","Perra","Sora","Ophira","Zurina","Essara"],
+    neutral: ["Ghesh","Jheri","Nadarr","Pandjed","Torinn","Vorin","Draveth","Kaesh"],
+    surnames: ["Clethtinthiallor","Daardendrian","Delmirev","Drachedandion","Fenkenkabradon","Kepeshkmolik","Kerrhylon","Linxakasendalor","Myastan","Nemmonis",
+                "Turnuroth","Verthisathurgiesh"]
+  },
+  tiefling: {
+    male: ["Akmenos","Amnon","Barakas","Damakos","Ekemon","Iados","Kairon","Leucis","Melech","Skamos","Rakis","Vasar","Othric","Kelnoth"],
+    female: ["Akta","Bryseis","Damaia","Kallista","Lerissa","Makaria","Nemeia","Orianna","Phelaia","Rieta","Xanthe","Vespira","Ilyria","Nyssia"],
+    neutral: ["Art","Carrion","Creed","Glory","Hope","Music","Nowhere","Reverence","Torment","Weary","Sorrow","Justice","Cinder"],
+    surnames: ["Carrion","Hope","Torment","Glory","Nowhere","Sorrow","Reverence","Music","Vice","Ruin","Ash"]
+  },
+  celestial: {
+    male: ["Gadriel","Zophiel","Raphiel","Uriah","Seraph","Ophaniel","Yeshuel","Zerakiel","Ithuriel","Amariel"],
+    female: ["Seraphina","Nuriel","Auriel","Raziela","Liora","Haniel","Xaphira","Ariloth","Zophira","Nathiel"],
+    neutral: ["Halo","Radiance","Zeal","Devotion","Grace","Aurelion","Empyria","Solarion","Lumis"],
+    surnames: ["Lightbringer","Dawnward","Sunhallowed","Starforged","Gracewing","Wingcrest","Skyhallow","Aureward","Radianthome"]
+  },
+  genasi: {
+    male: ["Aashif","Bashir","Darius","Ehsan","Farid","Javed","Karim","Nasir","Omair","Rashad","Hamid","Idris","Suhail"],
+    female: ["Aisha","Basimah","Danya","Farrah","Jamila","Layla","Nadia","Rana","Samira","Zahra","Farida","Noura","Sabah"],
+    neutral: ["Zafir","Sirocco","Tempest","Monsoon","Ashfall","Simoom","Levanter","Zephyrine"],
+    surnames: ["Emberwind","Glassdune","Stormbound","Tideborn","Ashwrought","Stonecalled","Windswept","Cinderveil","Duststep","Squallborn"]
+  },
+  avian: {
+    male: ["Baeree","Ehrreh","Ikinu","Kavea","Rahadin","Skai","Vevaus","Ohtli","Rrek","Vashk"],
+    female: ["Aera","Aina","Beawoo","Erra","Inashee","Kekki","Mala","Sinu","Zavaea","Ohmi","Skava","Wysse"],
+    neutral: ["Chak","Kree","Krik","Tikk","Skreetch","Squawk","Ratter","Vrik","Chee","Kaw"],
+    surnames: []
+  },
+  goliath: {
+    male: ["Aukan","Eglath","Gauthak","Kuori","Lo-Kag","Orilo","Thalai","Uthaki","Wayako","Thotham","Drevis","Kural"],
+    female: ["Vaunea","Nalla","Iyovi","Keothi","Manneo","Sunhi","Vimak","Thava","Ilanu","Semadi","Threnna","Vashti"],
+    neutral: ["Maveth","Pallak","Fenn","Yuki","Torsk","Ashad","Korvai","Ennu"],
+    surnames: ["Fearless","Keen-Ear","Bear-Slayer","Stone-Hand","Fast-Foot","Six-Fingers","Snow-Born","Stormcaller","Cloud-Walker","Iron-Jaw"]
+  },
+  firbolg: {
+    male: ["Brannoc","Cadohan","Colgan","Eogha","Gathal","Irwyth","Odwel","Vernaith","Ardal","Braeden","Tiernan"],
+    female: ["Aille","Aoise","Beibhinn","Caoilfhoinn","Corliss","Neamh","Oiche","Sionna","Deirbhile","Grainne","Sinead","Maura"],
+    neutral: ["Fintan","Doeth","Riagan","Saoirse","Eilis","Oisin"],
+    surnames: ["Glenward","Mossveil","Oakenhome","Fernhollow","Stagheart","Brookshade","Thistledown","Hollowvale"]
+  },
+  tabaxi: {
+    male: ["Chitzuma","Ehecatl","Ozomatli","Rikaru","Tepin","Xolotl","Achcolotl","Nachtli","Pipiltin"],
+    female: ["Jajouka","Kalani","Mishi","Quetzal","Sekhmet","Yaotl","Itztli","Xochitl","Nenetl"],
+    neutral: ["Chattur","Mngwa","Ailurin","Tzintli","Balam","Coyotl"],
+    surnames: []
+  },
+  lizardfolk: {
+    male: ["Sees-Patterns","Iron-Scale","Fast-Water","Deep-Diver","Rain-Caller","Swift-Claw","Storm-Back","Bright-Fang"],
+    female: ["Many-Feathers","Stone-Talon","Bright-Eye","Silent-Wave","Mud-Runner","Green-Reed","Night-Hiss","Marsh-Walker"],
+    neutral: ["Cold-Blood","Sharp-Tooth","Grey-Marsh","Quick-Strike","Ash-Tongue","River-Scale"],
+    surnames: []
+  },
+  serpentine: {
+    male: ["Sslith","Zathrax","Kessith","Vraxil","Vessik","Xevanth","Ophrixis","Naskarr"],
+    female: ["Nyrissa","Zhaanas","Ythiss","Charassk","Skalvyra","Vessyra","Ythanna","Zylessa"],
+    neutral: ["Vyxassk","Ssaris","Thassik","Skarrik","Vraxis"],
+    surnames: []
+  },
+  construct: {
+    male: ["Rivet","Cinderblock","Steelbeak","Gearheart","Anvil","Bolt","Chassis","Piston"],
+    female: ["Bastion","Fenwick","Widget","Nibbles","Cog-14","Circuit","Wrenna","Vex"],
+    neutral: ["Sentinel-7","Bill","Sparks","Toolbox","One-of-Twelve","Unit-9","Clank","Servo"],
+    surnames: []
+  },
+  plasmoid: {
+    male: ["Glorp","Blorb","Ochre","Drib","Sploot","Blurm"],
+    female: ["Ripple","Puddle","Seep","Gloop","Ochra","Slurr"],
+    neutral: ["Squish","Vessel","Blot","Ooze-7","Morph","Bubble","Goo-3"],
+    surnames: []
+  },
+  gith: {
+    male: ["Zaerith","Nemtaru","Kith'rak","Zaeed","Vrondrik","Zaelenor","Threxxis"],
+    female: ["Vlaakith","Ssamathi","Threnn","Vrondiss","Ashkyra","Ren'dai","Nyssen"],
+    neutral: ["Zethrindor","Ch'rai","Duadon","Xaenith","Vren"],
+    surnames: []
+  },
+  eberron: {
+    male: ["Neek","Ollo","Zae","Rashan","Tao","Vell","Praxle","Tobrec","Marsuvees"],
+    female: ["Ysolt","Steshni","Adalae","Sha","Neshki","Zorielle","Praxi","Ilyndra"],
+    neutral: ["Tal","Vess","Nel","Or","Rai","Kethra","Doreth","Sael"],
+    surnames: []
+  },
+  shifter: {
+    male: ["Grix","Kesk","Tavak","Yund","Bor","Drask","Halvard","Korvath"],
+    female: ["Rill","Sable","Kyra","Fenna","Wren","Vesha","Brynn","Talora"],
+    neutral: ["Tam","Rowe","Kell","Ashe","Fen","Skarn","Grael"],
+    surnames: ["Fangborn","Wildstalker","Moonhide","Bramblefur","Swiftpaw","Duskhowl","Ashenpaw","Thornhide"]
+  },
+  ravnica: {
+    male: ["Tomik","Adrix","Ral","Vraan","Zaffai","Jarad","Domri","Kaya"],
+    female: ["Vraska","Zegana","Kiora","Ellyx","Tamiyo","Isperia","Melira","Lavinia"],
+    neutral: ["Niv","Rasp","Voja","Zask","Emmara","Grothama","Sarkhan","Ashiok"],
+    surnames: []
+  },
+  loxodon: {
+    male: ["Bhesh","Ravi","Vishal","Anand","Devesh","Ganesh","Hemant","Arvind"],
+    female: ["Anjali","Meera","Kavita","Sunitha","Rupal","Lakshmi","Ishani","Radha"],
+    neutral: ["Nandi","Ashoka","Indra","Kiran","Chandra","Girish","Padma"],
+    surnames: ["Trunkguard","Stonehide","Greyback","Steadfoot","Dusktusk","Ivorytusk"]
+  },
+  greekMyth: {
+    male: ["Chiron","Nessos","Pholus","Asterion","Silenus","Marsyas","Thallo","Onus","Nessarus","Eurytion"],
+    female: ["Hylonome","Okyrhoe","Euippe","Aigle","Deianira","Atalanta","Callisto"],
+    neutral: ["Bromios","Dryas","Kymo","Skiron","Faunus","Aeon"],
+    surnames: []
+  },
+  fey: {
+    male: ["Fig","Bramble","Moth","Basil","Hop","Sprig","Acorn","Twig"],
+    female: ["Wisp","Bell","Juniper","Clover","Poppy","Petal","Marigold","Dewdrop"],
+    neutral: ["Thistle","Dew","Fenn","Whisker","Buttons","Nettle","Glimmer","Sprout"],
+    surnames: []
+  },
+  // Grung: short, croaky, consonant-heavy — frog/toad-folk.
+  grung: {
+    male: ["Vurnik","Rukk","Grellik","Zeeb","Ploog","Tokk","Mrikk","Grubb","Kwork","Skorn",
+            "Grokk","Vibb","Wartok","Blorn","Skibb","Tunk","Ribbik","Ozz","Grimp","Yorb"],
+    female: ["Vrenna","Ossi","Quilby","Trill","Wexa","Zuppa","Ninka","Ollo","Braxi","Snerp",
+              "Vribba","Skiffa","Wortle","Blenna","Croaka","Nubbi","Grella","Yippa","Vessi","Bogwyn"],
+    neutral: ["Glip","Skree","Vrikk","Ploth","Nerp","Blorp","Rikk","Vune","Skab","Tond","Wexo","Griff"],
+    surnames: ["Marshleap","Bogtongue","Mudskip","Croakshadow","Puddlejaw","Ribbetclaw","Damphollow","Swampwart",
+                "Toadgrip","Wartback","Slickhide","Bogleap","Rushcroak","Mireskin","Fernleap","Bramblehop"]
+  },
+  // Locathah: flowing, sibilant, fused single-word names — fish-folk (distinct from
+  // Triton's separate color+water two-word combos).
+  locathah: {
+    male: ["Quorlan","Fenrallis","Osslar","Vantrik","Sthavos","Naendor","Rilassor","Cadrenth",
+            "Vessalor","Rendrassin","Thallenor","Cassivor","Nyrathen","Velantar","Sarrenoth","Fenthrax",
+            "Ollavir","Zephalon","Undravath","Marendil"],
+    female: ["Ossandra","Vaelantha","Silvenne","Naerith","Quilessa","Thessaline","Marellith","Fintaria",
+               "Sylvaneth","Naerissa","Ondrelle","Thassaria","Velmira","Corallyn","Nythera","Sallowyn",
+               "Vaeressa","Ithalein","Morrendia","Quilnara"],
+    neutral: ["Ithress","Vaelor","Sthorm","Naeli","Quorith","Vaelith","Ondris","Thassel","Nyrith","Corvael","Sallor","Ithane"],
+    surnames: ["Silverfin","Deepscale","Coldgill","Brightscale","Swiftfin","Glassfin","Moonscale","Palefin",
+                "Pearlfin","Tidescale","Wavegill","Duskfin","Stormscale","Riverfin","Shadowscale","Frostgill"]
+  },
+  // Tritons: two-word names pairing a color/tone with an evocative ocean word
+  // (e.g. Silver Wake, Deep Tide, Navy Turnsplash, Indigo Superior). Same word
+  // list feeds all genders since the convention isn't gendered — the combination
+  // is what creates the variety (38 x 40 = 1,500+ possible names).
+  triton: {
+    male: ["Silver","Deep","Navy","Indigo","Azure","Coral","Storm","Frost","Cobalt","Slate",
+            "Obsidian","Jade","Marble","Teal","Ember","Ashen","Golden","Ivory","Crystal","Onyx",
+            "Sapphire","Pearl","Amber","Violet","Crimson","Turquoise","Emerald","Opaline","Umber","Cerulean",
+            "Moonlit","Sunken","Brackish","Glacial","Briny","Murky","Shimmering","Tidal"],
+    female: ["Silver","Deep","Navy","Indigo","Azure","Coral","Storm","Frost","Cobalt","Slate",
+              "Obsidian","Jade","Marble","Teal","Ember","Ashen","Golden","Ivory","Crystal","Onyx",
+              "Sapphire","Pearl","Amber","Violet","Crimson","Turquoise","Emerald","Opaline","Umber","Cerulean",
+              "Moonlit","Sunken","Brackish","Glacial","Briny","Murky","Shimmering","Tidal"],
+    neutral: ["Silver","Deep","Navy","Indigo","Azure","Coral","Storm","Frost","Cobalt","Slate",
+               "Obsidian","Jade","Marble","Teal","Ember","Ashen","Golden","Ivory","Crystal","Onyx",
+               "Sapphire","Pearl","Amber","Violet","Crimson","Turquoise","Emerald","Opaline","Umber","Cerulean",
+               "Moonlit","Sunken","Brackish","Glacial","Briny","Murky","Shimmering","Tidal"],
+    surnames: ["Wake","Tide","Turnsplash","Superior","Current","Depths","Reef","Whirl","Surge","Fathom",
+                "Drift","Crest","Abyss","Cove","Maelstrom","Brine","Undertow","Riptide","Shoal","Trench",
+                "Spray","Foam","Swell","Horizon","Bay","Deepwater","Lagoon","Kelp","Barnacle","Whitecap",
+                "Backwash","Eddy","Rapids","Shallows","Breaker","Floe","Basin","Channel","Estuary","Vortex"]
+  },
+  ghostly: {
+    male: ["Doskvol","Yornath","Callum","Ashwren","Grael","Thane","Malachi"],
+    female: ["Elenwyth","Morrigant","Wraithe","Nyssara","Isolde","Lenore","Morrow"],
+    neutral: ["Vesper","Grieve","Hollow","Ashen","Wisp","Shade","Wane"],
+    surnames: ["Wraithmoor","Graveshade","Duskbound","Hollowreach","Nightfen","Palewood","Nightshroud"]
+  },
+  // Giff: bombastic hippo-folk mercenaries with an over-the-top English colonial/
+  // country-squire flair — think Nigel Thornberry with a musket.
+  giff: {
+    male: ["Nigel","Reginald","Bartholomew","Cornelius","Percival","Barnaby","Edmund",
+            "Winston","Chauncey","Mortimer","Bomstoutin","Grogsnout","Cannonwhistle","Barrumpkin","Fizzlewick"],
+    female: ["Beatrice","Millicent","Cordelia","Prudence","Agatha","Wilhelmina",
+              "Bramblebottom","Thunderhide","Bellowmaw","Ratchethide","Henrietta","Constance","Georgiana"],
+    neutral: ["Fitzwilliam","Ashworth","Drumfire","Pomsnout","Trufflewhistle","Peregrine"],
+    surnames: ["Thornberry","Wellington","Fitzherbert","Pemberton","Farnsworth","Beauregard",
+                "Cavendish","Worthington","Grenville","Hastings","Chumbleigh","Snodgrass"]
+  },
+  thrikreen: {
+    male: ["Tchakka","Vrikk","Zzai","Ythrik","Zassk","Krethis","Vorn"],
+    female: ["Ssemm","Thass","Krith","Sethra","Ixara","Vrenn","Zhaska"],
+    neutral: ["Kkritch","Zeth'kai","Chraan","Chrikk","Sskarr"],
+    surnames: []
+  },
+  tortle: {
+    male: ["Kolo","Tanu","Podu","Dozo","Bantu","Shellak","Groto"],
+    female: ["Reeba","Sheeka","Wamba","Nuko","Nalu","Terrapina","Coba"],
+    neutral: ["Chelu","Bantam","Marsu","Shen","Kelp"],
+    surnames: []
+  }
+};
+
+// Maps every species option to the naming convention it should draw from.
+const SPECIES_TO_GROUP = {
+  "Human": "human",
+  "Dwarf (Hill)": "dwarf", "Dwarf (Mountain)": "dwarf", "Duergar (Gray Dwarf)": "dwarf",
+  "Elf (High)": "elfHigh", "Eladrin": "elfHigh", "Astral Elf": "elfHigh",
+  "Elf (Wood)": "elfWood", "Sea Elf": "elfWood",
+  "Elf (Drow)": "drow",
+  "Elf (Rodarian)": "rodarian",
+  "Shadar-kai": "shadar",
+  "Half-Elf": "halfElf",
+  "Half-Orc": "orcish",
+  "Halfling (Lightfoot)": "halfling", "Halfling (Stout)": "halfling", "Ghostwise Halfling": "halfling",
+  "Gnome (Forest)": "gnome", "Gnome (Rock)": "gnome", "Deep Gnome (Svirfneblin)": "gnome",
+  "Mousling": "mousling",
+  "Dragonborn": "dragonborn",
+  "Tiefling": "tiefling",
+  "Aasimar": "celestial",
+  "Genasi (Air)": "genasi", "Genasi (Earth)": "genasi", "Genasi (Fire)": "genasi", "Genasi (Water)": "genasi",
+  "Aarakocra": "avian", "Kenku": "avian", "Owlin": "avian",
+  "Firbolg": "firbolg",
+  "Goliath": "goliath",
+  "Lizardfolk": "lizardfolk",
+  "Tabaxi": "tabaxi",
+  "Triton": "triton", "Grung": "grung", "Locathah": "locathah",
+  "Bugbear": "orcish", "Goblin": "orcish", "Hobgoblin": "orcish", "Kobold": "orcish", "Orc": "orcish", "Verdan": "orcish",
+  "Yuan-ti Pureblood": "serpentine",
+  "Tortle": "tortle",
+  "Gith (Githyanki)": "gith", "Gith (Githzerai)": "gith",
+  "Changeling": "eberron", "Kalashtar": "eberron",
+  "Shifter (Beasthide)": "shifter", "Shifter (Longtooth)": "shifter", "Shifter (Swiftstride)": "shifter", "Shifter (Wildhunt)": "shifter",
+  "Warforged": "construct", "Autognome": "construct",
+  "Simic Hybrid": "ravnica", "Vedalken": "ravnica",
+  "Loxodon": "loxodon",
+  "Centaur": "greekMyth", "Minotaur": "greekMyth", "Satyr": "greekMyth",
+  "Fairy": "fey", "Harengon": "fey",
+  "Plasmoid": "plasmoid",
+  "Thri-kreen": "thrikreen",
+  "Reborn": "ghostly", "Hexblood": "ghostly",
+  "Giff": "giff"
+};
+
+// A handful of deliberately silly, tongue-in-cheek names get sprinkled across every
+// species' pool (yes, even the elves) so an occasional NPC is named "Goose" or "Kringle."
+// Rotated per group so the same two or three silly names don't show up everywhere at once.
+const SILLY_NAMES = ["Goose","Snatch","Kringle","Festerbeth","Chumley","Waffles","Bingo",
+  "Nubbins","Big Gus","Gouda","Sir Fluffington","Dave","Norm","Gary","Doug","Biscuit"];
+(function seedSillyNames(){
+  function seedInto(g, i){
+    const a = SILLY_NAMES[i % SILLY_NAMES.length];
+    const b = SILLY_NAMES[(i + 3) % SILLY_NAMES.length];
+    if(g.male) g.male.push(a);
+    if(g.female) g.female.push(b);
+    if(g.neutral && g.neutral.length) g.neutral.push(SILLY_NAMES[(i + 7) % SILLY_NAMES.length]);
+  }
+  const groupKeys = Object.keys(NAME_GROUPS);
+  groupKeys.forEach((key, i)=>{
+    const g = NAME_GROUPS[key];
+    if(g.cultures && g.cultures.length){
+      g.cultures.forEach((culture, j)=> seedInto(culture, i + j));
+    } else {
+      seedInto(g, i);
+    }
+  });
+})();
+
+// ---------- STATE ----------
+const state = {};
+const locked = {};
+
+function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+
+function genderKeyForName(g){
+  if(g === "Male") return "male";
+  if(g === "Female") return "female";
+  return "neutral";
+}
+
+function generateName(gender, species){
+  const key = genderKeyForName(gender);
+  const groupKey = SPECIES_TO_GROUP[species] || "human";
+  let group = NAME_GROUPS[groupKey] || NAME_GROUPS.human;
+  // Some groups (e.g. Human) are split into real-world cultures — pick one first so the
+  // first name and surname come from the same coherent culture instead of mixing at random.
+  if(group.cultures && group.cultures.length){
+    group = pick(group.cultures);
+  }
+  const pool = (group[key] && group[key].length) ? group[key] : ((group.neutral && group.neutral.length) ? group.neutral : group.male);
+  const first = pick(pool);
+  if(group.surnames && group.surnames.length){
+    return `${first} ${pick(group.surnames)}`;
+  }
+  return first;
+}
+
+function populateSpeciesFilter(){
+  const sel = document.getElementById("speciesFilter");
+  const land = SPECIES.filter(s => !AQUATIC_SPECIES.includes(s));
+  sel.innerHTML = '<option value="__any__">Any species</option>' +
+    land.map(s => `<option value="${s}">${s}</option>`).join("") +
+    '<optgroup label="Aquatic">' +
+    AQUATIC_SPECIES.map(s => `<option value="${s}">${s}</option>`).join("") +
+    '</optgroup>';
+}
+
+function rollField(key){
+  switch(key){
+    case "species": {
+      const filt = document.getElementById("speciesFilter").value;
+      return (filt && filt !== "__any__") ? filt : pick(SPECIES);
+    }
+    case "gender": return pickWeighted(GENDER_WEIGHTS);
+    case "occupation": return pick(OCCUPATIONS);
+    case "alignment": return pick(ALIGNMENTS);
+    case "trait": return pick(TRAITS);
+    case "quirk": return pick(QUIRKS);
+    case "voice": return pick(VOICES);
+    case "bond": return pick(BONDS);
+    case "flaw": return pick(FLAWS);
+    case "secret": return pick(SECRETS);
+  }
+}
+
+const FIELD_KEYS = ["species","gender","occupation","alignment","trait","quirk","voice","bond","flaw","secret"];
+
+// If the current species is Triton, (re)roll its cosmetic variety tag; otherwise clear it.
+function updateTritonVariety(){
+  if(state.species === "Triton"){
+    state.speciesVariety = pick(TRITON_VARIETIES);
+  } else {
+    state.speciesVariety = null;
+  }
+}
+
+function displaySpecies(){
+  if(!state.species) return "—";
+  return state.speciesVariety ? `${state.species} (${state.speciesVariety})` : state.species;
+}
+
+function render(){
+  FIELD_KEYS.forEach(k=>{
+    document.getElementById("f-"+k).textContent = (k === "species") ? displaySpecies() : (state[k] || "—");
+    const box = document.querySelector(`.field[data-key="${k}"]`);
+    box.classList.toggle("locked", !!locked[k]);
+  });
+  document.getElementById("npcName").textContent = state.name || "Click Generate";
+  document.getElementById("npcTagline").textContent =
+    (state.species && state.occupation) ? `${displaySpecies()} ${state.occupation}` : "";
+}
+
+function generate(){
+  FIELD_KEYS.forEach(k=>{
+    if(!locked[k]) state[k] = rollField(k);
+  });
+  if(!locked["species"]){
+    updateTritonVariety();
+  } else if(state.speciesVariety === undefined){
+    updateTritonVariety();
+  }
+  if(!locked["name"] || !state.name){
+    state.name = generateName(state.gender, state.species);
+  }
+  render();
+  document.getElementById("copyMsg").textContent = "";
+}
+
+function toggleLock(key){
+  locked[key] = !locked[key];
+  render();
+}
+
+function buildText(){
+  return [
+    `Name: ${state.name}`,
+    `Species: ${displaySpecies()}`,
+    `Gender: ${state.gender}`,
+    `Occupation: ${state.occupation}`,
+    `Alignment: ${state.alignment}`,
+    `Quirk: ${state.quirk}`,
+    `Personality Trait: ${state.trait}`,
+    `Voice/Mannerism: ${state.voice}`,
+    `Bond: ${state.bond}`,
+    `Flaw: ${state.flaw}`,
+    `Secret/Hook: ${state.secret}`
+  ].join("\n");
+}
+
+// ---------- INIT ----------
+populateSpeciesFilter();
+
+document.getElementById("genBtn").addEventListener("click", generate);
+document.getElementById("clearLocksBtn").addEventListener("click", ()=>{
+  Object.keys(locked).forEach(k=>locked[k]=false);
+  render();
+});
+document.getElementById("copyBtn").addEventListener("click", ()=>{
+  const text = buildText();
+  navigator.clipboard.writeText(text).then(()=>{
+    document.getElementById("copyMsg").textContent = "Copied to clipboard!";
+  }).catch(()=>{
+    document.getElementById("copyMsg").textContent = text;
+  });
+});
+
+document.querySelectorAll(".field .reroll").forEach(btn=>{
+  btn.addEventListener("click", (e)=>{
+    const box = e.target.closest(".field");
+    const key = box.dataset.key;
+    // shift-click (or long tap) toggles lock; plain click rerolls single field
+    if(e.shiftKey){
+      toggleLock(key);
+    } else {
+      if(!locked[key]){
+        state[key] = rollField(key);
+        if(key === "species"){
+          updateTritonVariety();
+        }
+        if(key === "species" || key === "gender"){
+          if(!locked["name"]) state.name = generateName(state.gender, state.species);
+        }
+        render();
+      }
+    }
+  });
+  btn.addEventListener("contextmenu", (e)=>{
+    e.preventDefault();
+    const box = e.target.closest(".field");
+    toggleLock(box.dataset.key);
+  });
+});
+
+generate();
+</script>
+</body>
+</html>
