@@ -1,4 +1,3 @@
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -180,7 +179,7 @@
 </style>
 </head>
 <body>
-<div class="sheet" id="npcSheet">
+<div class="sheet">
   <h1>&#9876; NPC Forge &#9876;</h1>
   <p class="subtitle">An extensive random NPC generator for D&amp;D 5e &mdash; expanded species &amp; two-word quirks</p>
 
@@ -191,7 +190,7 @@
 
   <div class="controls">
     <button id="genBtn">&#127922; Generate NPC</button>
-    <button id="saveBtn" class="secondary"> Save NPC</button>
+    <button id="copyBtn" class="secondary">&#128203; Copy to clipboard</button>
     <button id="clearLocksBtn" class="secondary">&#128275; Clear locks</button>
   </div>
 
@@ -2476,34 +2475,14 @@ document.getElementById("clearLocksBtn").addEventListener("click", ()=>{
   Object.keys(locked).forEach(k=>locked[k]=false);
   render();
 });
-document.getElementById("saveBtn").addEventListener("click", saveNPC);
-
-async function saveNPC(){
-
-    const sheet = document.getElementById("npcSheet");
-
-    sheet.classList.add("exporting");
-
-    const canvas = await html2canvas(sheet,{
-        scale:3,
-        backgroundColor:"#f4e8d0",
-        useCORS:true
-    });
-
-    sheet.classList.remove("exporting");
-
-    const link = document.createElement("a");
-
-    const filename = (state.name || "NPC")
-        .replace(/[^\w\s-]/g,"")
-        .trim()
-        .replace(/\s+/g,"_");
-
-    link.download = filename + ".png";
-    link.href = canvas.toDataURL("image/png");
-
-    link.click();
-}
+document.getElementById("copyBtn").addEventListener("click", ()=>{
+  const text = buildText();
+  navigator.clipboard.writeText(text).then(()=>{
+    document.getElementById("copyMsg").textContent = "Copied to clipboard!";
+  }).catch(()=>{
+    document.getElementById("copyMsg").textContent = text;
+  });
+});
 
 document.querySelectorAll(".field .reroll").forEach(btn=>{
   btn.addEventListener("click", (e)=>{
@@ -2531,13 +2510,7 @@ document.querySelectorAll(".field .reroll").forEach(btn=>{
     toggleLock(box.dataset.key);
   });
 });
-.exporting .controls,
-.exporting .filters,
-.exporting footer,
-.exporting .copy-msg,
-.exporting .reroll{
-    display:none !important;
-}
+
 generate();
 </script>
 </body>
